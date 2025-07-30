@@ -1,4 +1,5 @@
 # Groceries Shopping App - Frontend
+<img width="1068" height="537" alt="image" src="https://github.com/user-attachments/assets/f0ef5e2e-7fda-4c0f-be8f-a33a53b7bdf5" />
 
 A modern, responsive grocery shopping list application built with React and Vite. This frontend is designed to work with a separate backend API for data persistence.
 
