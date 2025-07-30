@@ -5,6 +5,7 @@ import { useToast } from './context/ToastContext'
 import { apiService } from './services/apiService'
 import AuthContainer from './components/Auth/AuthContainer'
 import ToastContainer from './components/Toast/ToastContainer'
+import ApiTester from './components/Debug/ApiTester'
 
 function App() {
   const { isAuthenticated, isLoading: authLoading, user, logout } = useAuth()
@@ -14,6 +15,7 @@ function App() {
   const [selectedCategory, setSelectedCategory] = useState('')
   const [filterCategory, setFilterCategory] = useState('all')
   const [isLoading, setIsLoading] = useState(false)
+  const [showApiTester, setShowApiTester] = useState(false)
 
   // Predefined categories - you can modify these or fetch from your backend
   const categories = [
@@ -27,10 +29,20 @@ function App() {
   const fetchItems = async () => {
     try {
       setIsLoading(true)
+      console.log('📦 Fetching items from backend...')
       const data = await apiService.getItems()
-      setItems(data)
+      console.log('✅ Items fetched successfully:', data)
+      
+      // Handle different response formats
+      const itemsArray = Array.isArray(data) ? data : (data.items || data.data || [])
+      setItems(itemsArray)
+      
+      if (itemsArray.length === 0) {
+        showInfo('No items found. Start adding some groceries! 🛒')
+      }
     } catch (error) {
-      console.error('Error fetching items:', error)
+      console.error('❌ Error fetching items:', error)
+      showError(`Failed to load items: ${error.message}`)
       setItems([]) // Set empty array on error
     } finally {
       setIsLoading(false)
@@ -52,14 +64,19 @@ function App() {
 
     try {
       setIsLoading(true)
+      console.log('➕ Adding new item:', newItem)
       const savedItem = await apiService.addItem(newItem)
-      setItems(prevItems => [...prevItems, savedItem])
+      console.log('✅ Item added successfully:', savedItem)
+      
+      // Handle different response formats
+      const itemToAdd = savedItem.data || savedItem.item || savedItem
+      setItems(prevItems => [...prevItems, itemToAdd])
       setNewItemName('')
       setSelectedCategory('')
-      showSuccess(`"${savedItem.name}" added to your list! ✅`)
+      showSuccess(`"${itemToAdd.name}" added to your list! ✅`)
     } catch (error) {
-      console.error('Error adding item:', error)
-      showError('Failed to add item. Please try again.')
+      console.error('❌ Error adding item:', error)
+      showError(`Failed to add item: ${error.message}`)
     } finally {
       setIsLoading(false)
     }
@@ -71,17 +88,21 @@ function App() {
       const itemToUpdate = items.find(item => item.id === itemId)
       if (!itemToUpdate) return
 
+      const updatedItem = { ...itemToUpdate, completed: !itemToUpdate.completed }
+
       // Optimistically update UI
       const updatedItems = items.map(item =>
-        item.id === itemId ? { ...item, completed: !item.completed } : item
+        item.id === itemId ? updatedItem : item
       )
       setItems(updatedItems)
 
-      // Note: Your backend might need a PATCH endpoint for updating items
-      // For now, we'll just update the local state
-      // If you want to persist completion status, add a PATCH endpoint to your backend
+      // Update on backend using the new updateItem endpoint
+      await apiService.updateItem(itemId, { completed: updatedItem.completed })
+      
+      showSuccess(`"${itemToUpdate.name}" marked as ${updatedItem.completed ? 'completed' : 'pending'}! ${updatedItem.completed ? '✅' : '📝'}`)
     } catch (error) {
       console.error('Error updating item:', error)
+      showError('Failed to update item. Please try again.')
       // Revert optimistic update on error
       fetchItems()
     }
@@ -90,16 +111,22 @@ function App() {
   // Delete item
   const deleteItem = async (itemId) => {
     const itemToDelete = items.find(item => item.id === itemId)
+    if (!itemToDelete) {
+      showError('Item not found')
+      return
+    }
+
     try {
       setIsLoading(true)
+      console.log('🗑️ Deleting item:', itemToDelete)
       await apiService.deleteItem(itemId)
+      console.log('✅ Item deleted successfully')
+      
       setItems(prevItems => prevItems.filter(item => item.id !== itemId))
-      if (itemToDelete) {
-        showSuccess(`"${itemToDelete.name}" removed from your list! 🗑️`)
-      }
+      showSuccess(`"${itemToDelete.name}" removed from your list! 🗑️`)
     } catch (error) {
-      console.error('Error deleting item:', error)
-      showError('Failed to delete item. Please try again.')
+      console.error('❌ Error deleting item:', error)
+      showError(`Failed to delete "${itemToDelete.name}": ${error.message}`)
     } finally {
       setIsLoading(false)
     }
@@ -155,6 +182,22 @@ function App() {
             <h1>Groceries Shopping App</h1>
             <div className="user-info">
               <span>Welcome, {user?.name}! 👋</span>
+              <button 
+                className="debug-btn"
+                onClick={() => setShowApiTester(!showApiTester)}
+                style={{
+                  background: '#6366f1',
+                  color: 'white',
+                  border: 'none',
+                  padding: '8px 12px',
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  marginRight: '10px',
+                  cursor: 'pointer'
+                }}
+              >
+                🔧 Debug
+              </button>
               <button className="logout-btn" onClick={handleLogout}>
                 Logout
               </button>
@@ -316,6 +359,9 @@ function App() {
         </div>
       </div>
       </div>
+      
+      {/* Debug API Tester */}
+      {showApiTester && <ApiTester />}
     </>
   )
 }

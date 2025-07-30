@@ -10,27 +10,79 @@ const ApiTester = () => {
     password: 'password123'
   })
 
-  const testBackendConnection = async () => {
+  const testAllEndpoints = async () => {
     setIsLoading(true)
     const results = {}
 
-    // Test basic connection
+    // Test 1: Backend Connection
     try {
+      console.log('🔍 Testing backend connection...')
       const connected = await apiService.testConnection()
-      results.connection = connected ? 'Connected ✅' : 'Connection Failed ❌'
+      results.connection = connected ? 'Backend Connected ✅' : 'Backend Connection Failed ❌'
     } catch (error) {
       results.connection = `Connection Error: ${error.message} ❌`
     }
 
-    // Test registration endpoint with detailed logging
+    // Test 2: Registration endpoint
     try {
-      console.log('🧪 Testing registration with data:', testData)
+      console.log('📝 Testing registration endpoint...')
       const response = await apiService.register(testData.name, testData.email, testData.password)
-      console.log('✅ Registration response:', response)
-      results.register = 'Register endpoint working ✅'
+      results.register = 'Registration endpoint working ✅'
     } catch (error) {
-      console.error('❌ Registration error details:', error)
-      results.register = `Register Error: ${error.message} ❌`
+      results.register = `Registration Error: ${error.message} ❌`
+    }
+
+    // Test 3: Sign-in endpoint
+    try {
+      console.log('🔐 Testing sign-in endpoint...')
+      const response = await apiService.signIn(testData.email, testData.password)
+      results.signin = 'Sign-in endpoint working ✅'
+    } catch (error) {
+      results.signin = `Sign-in Error: ${error.message} ❌`
+    }
+
+    // Test 4: Items endpoints (requires authentication)
+    try {
+      console.log('📦 Testing items endpoints...')
+      
+      // Test getting items
+      const items = await apiService.getItems()
+      results.getItems = 'Get items endpoint working ✅'
+      
+      // Test adding item
+      const newItem = { name: 'Test Item', category: 'Test Category', completed: false }
+      const addedItem = await apiService.addItem(newItem)
+      results.addItem = 'Add item endpoint working ✅'
+      
+      // Test updating item (if item was added successfully)
+      if (addedItem && addedItem.id) {
+        await apiService.updateItem(addedItem.id, { completed: true })
+        results.updateItem = 'Update item endpoint working ✅'
+        
+        // Test deleting item
+        await apiService.deleteItem(addedItem.id)
+        results.deleteItem = 'Delete item endpoint working ✅'
+      }
+    } catch (error) {
+      results.itemsEndpoints = `Items endpoints error: ${error.message} ❌`
+    }
+
+    // Test 5: Categories endpoints
+    try {
+      console.log('🏷️ Testing categories endpoints...')
+      const categories = await apiService.getCategories()
+      results.getCategories = 'Get categories endpoint working ✅'
+    } catch (error) {
+      results.getCategories = `Get categories error: ${error.message} ❌`
+    }
+
+    // Test 6: Password reset endpoints
+    try {
+      console.log('🔒 Testing password reset endpoints...')
+      await apiService.requestPasswordReset('test@example.com')
+      results.passwordReset = 'Password reset request endpoint working ✅'
+    } catch (error) {
+      results.passwordReset = `Password reset error: ${error.message} ❌`
     }
 
     setTestResults(results)
@@ -67,6 +119,10 @@ const ApiTester = () => {
     }
   }
 
+  const clearResults = () => {
+    setTestResults({})
+  }
+
   return (
     <div style={{
       position: 'fixed',
@@ -77,11 +133,11 @@ const ApiTester = () => {
       borderRadius: '8px',
       boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
       zIndex: 9999,
-      minWidth: '350px',
+      minWidth: '400px',
       maxHeight: '90vh',
       overflow: 'auto'
     }}>
-      <h3>🔧 Backend API Tester</h3>
+      <h3>🔧 Enhanced API Tester</h3>
       <p><strong>Backend URL:</strong> http://localhost:8000/api</p>
       
       <div style={{ marginBottom: '15px' }}>
@@ -106,54 +162,82 @@ const ApiTester = () => {
         />
       </div>
       
-      <button 
-        onClick={testBackendConnection} 
-        disabled={isLoading}
-        style={{
-          background: '#667eea',
-          color: 'white',
-          border: 'none',
-          padding: '10px 20px',
-          borderRadius: '6px',
-          cursor: 'pointer',
-          marginBottom: '10px',
-          marginRight: '10px'
-        }}
-      >
-        {isLoading ? 'Testing...' : 'Test API Service'}
-      </button>
+      <div style={{ marginBottom: '15px' }}>
+        <button 
+          onClick={testAllEndpoints} 
+          disabled={isLoading}
+          style={{
+            background: '#667eea',
+            color: 'white',
+            border: 'none',
+            padding: '10px 20px',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            marginRight: '10px',
+            marginBottom: '5px'
+          }}
+        >
+          {isLoading ? 'Testing All...' : 'Test All Endpoints'}
+        </button>
 
-      <button 
-        onClick={testSpecificEndpoint}
-        style={{
-          background: '#059669',
-          color: 'white',
-          border: 'none',
-          padding: '10px 20px',
-          borderRadius: '6px',
-          cursor: 'pointer',
-          marginBottom: '15px'
-        }}
-      >
-        Direct Test
-      </button>
+        <button 
+          onClick={testSpecificEndpoint}
+          style={{
+            background: '#059669',
+            color: 'white',
+            border: 'none',
+            padding: '10px 20px',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            marginRight: '10px',
+            marginBottom: '5px'
+          }}
+        >
+          Direct Test
+        </button>
+
+        <button 
+          onClick={clearResults}
+          style={{
+            background: '#dc2626',
+            color: 'white',
+            border: 'none',
+            padding: '10px 20px',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            marginBottom: '5px'
+          }}
+        >
+          Clear Results
+        </button>
+      </div>
 
       {Object.keys(testResults).length > 0 && (
         <div>
           <h4>Test Results:</h4>
-          {Object.entries(testResults).map(([test, result]) => (
-            <div key={test} style={{ marginBottom: '8px', fontFamily: 'monospace', fontSize: '12px' }}>
-              <strong>{test}:</strong> {result}
-            </div>
-          ))}
+          <div style={{ maxHeight: '300px', overflow: 'auto' }}>
+            {Object.entries(testResults).map(([test, result]) => (
+              <div key={test} style={{ 
+                marginBottom: '8px', 
+                fontFamily: 'monospace', 
+                fontSize: '12px',
+                padding: '5px',
+                backgroundColor: result.includes('✅') ? '#f0fdf4' : '#fef2f2',
+                borderRadius: '4px'
+              }}>
+                <strong>{test}:</strong> {result}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
       <div style={{ marginTop: '15px', fontSize: '12px', color: '#666' }}>
-        <strong>Error "couldnt add to database" means:</strong><br/>
-        ✅ Frontend → Backend: Working<br/>
-        ❌ Backend → MongoDB: Failed<br/>
-        Open browser console (F12) for detailed logs
+        <strong>Debugging Tips:</strong><br/>
+        ✅ Green = Working correctly<br/>
+        ❌ Red = Needs attention<br/>
+        📱 Check browser console (F12) for detailed logs<br/>
+        🔧 Make sure backend server is running on port 8000
       </div>
     </div>
   )

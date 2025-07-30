@@ -55,7 +55,7 @@ class ApiService {
           return errorData // Return the success response even though status is 400
         }
         
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+        throw new Error(errorData.message || errorData.error || `HTTP error! status: ${response.status}`)
       }
 
       const data = isJson ? await response.json() : await response.text()
@@ -107,17 +107,30 @@ class ApiService {
     })
   }
 
+  // Fixed password reset endpoints - removed duplicate /api/
   async requestPasswordReset(email) {
-    return this.request('/api/auth/request-reset', {
+    return this.request('/auth/request-reset', {
       method: 'POST',
       body: JSON.stringify({ email }),
     })
   }
 
   async resetPassword(token, newPassword) {
-    return this.request(`/api/auth/reset-password/${token}`, {
+    return this.request(`/auth/reset-password/${token}`, {
       method: 'POST',
       body: JSON.stringify({ newPassword }),
+    })
+  }
+
+  // User profile endpoints
+  async getUserProfile() {
+    return this.request('/user/profile')
+  }
+
+  async updateUserProfile(userData) {
+    return this.request('/user/profile', {
+      method: 'PUT',
+      body: JSON.stringify(userData),
     })
   }
 
@@ -130,6 +143,13 @@ class ApiService {
     return this.request('/items', {
       method: 'POST',
       body: JSON.stringify(item),
+    })
+  }
+
+  async updateItem(itemId, updates) {
+    return this.request(`/items/${itemId}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
     })
   }
 
@@ -152,6 +172,34 @@ class ApiService {
 
   async getCategoryItems(category) {
     return this.request(`/category/${category}`)
+  }
+
+  async addCategory(categoryData) {
+    return this.request('/categories', {
+      method: 'POST',
+      body: JSON.stringify(categoryData),
+    })
+  }
+
+  async deleteCategory(categoryId) {
+    return this.request(`/categories/${categoryId}`, {
+      method: 'DELETE',
+    })
+  }
+
+  // Bulk operations
+  async bulkDeleteItems(itemIds) {
+    return this.request('/items/bulk-delete', {
+      method: 'DELETE',
+      body: JSON.stringify({ itemIds }),
+    })
+  }
+
+  async bulkUpdateItems(updates) {
+    return this.request('/items/bulk-update', {
+      method: 'PUT',
+      body: JSON.stringify({ updates }),
+    })
   }
 }
 
